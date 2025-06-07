@@ -86,12 +86,42 @@ impl Z80 {
     pub fn new() -> Self {
         Self::default()
     }
+
+    // Pair operations
+    // For BC pair (B=high, C=low):
+    pub fn bc(&self) -> u16 { (self.b as u16) << 8 | self.c as u16 }
+    pub fn set_bc(&mut self, value: u16) { 
+        self.b = (value >> 8) as u8;   // High byte
+        self.c = value as u8;          // Low byte (truncates automatically)
+    }
+
+    // For HL pair
+    pub fn hl(&self) -> u16 { (self.h as u16) << 8 | self.l as u16 }
+    pub fn set_hl(&mut self, value: u16) { 
+        self.h = (value >> 8) as u8;
+        self.l = value as u8;
+    }
+
+    // For AF pair
+    pub fn af(&self) -> u16 { (self.a as u16) << 8 | self.f as u16 }
+    pub fn set_af(&mut self, value: u16) { 
+        self.a = (value >> 8) as u8;
+        self.f = value as u8;
+    }
+
+    // For DE pair
+    pub fn de(&self) -> u16 { (self.d as u16) << 8 | self.e as u16 }
+    pub fn set_de(&mut self, value: u16) { 
+        self.d = (value >> 8) as u8;
+        self.e = value as u8;
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    // STEP 1
     #[test]
     fn test_z80_initialization() {
         let cpu = Z80::new();
@@ -130,5 +160,59 @@ mod tests {
         assert_eq!(cpu.iff1, false);
         assert_eq!(cpu.iff2, false);
         assert_eq!(cpu.im, 0);
+    }
+
+    // STEP 2
+    #[test]
+    fn test_register_pair_getters() {
+        let mut cpu = Z80::new();
+        
+        // Set up test values
+        cpu.a = 0x12; cpu.f = 0x34;
+        cpu.b = 0x56; cpu.c = 0x78;
+        cpu.d = 0x9A; cpu.e = 0xBC;
+        cpu.h = 0xDE; cpu.l = 0xF0;
+        
+        // Test register pair getters
+        assert_eq!(cpu.af(), 0x1234);
+        assert_eq!(cpu.bc(), 0x5678);
+        assert_eq!(cpu.de(), 0x9ABC);
+        assert_eq!(cpu.hl(), 0xDEF0);
+    }
+
+    #[test]
+    fn test_register_pair_setters() {
+        let mut cpu = Z80::new();
+        
+        // Set register pairs
+        cpu.set_af(0x1234);
+        cpu.set_bc(0x5678);
+        cpu.set_de(0x9ABC);
+        cpu.set_hl(0xDEF0);
+        
+        // Verify individual registers were set correctly
+        assert_eq!(cpu.a, 0x12); assert_eq!(cpu.f, 0x34);
+        assert_eq!(cpu.b, 0x56); assert_eq!(cpu.c, 0x78);
+        assert_eq!(cpu.d, 0x9A); assert_eq!(cpu.e, 0xBC);
+        assert_eq!(cpu.h, 0xDE); assert_eq!(cpu.l, 0xF0);
+    }
+
+    #[test]
+    fn test_register_pair_roundtrip() {
+        let mut cpu = Z80::new();
+        
+        // Test that get/set operations are consistent
+        cpu.set_bc(0xABCD);
+        assert_eq!(cpu.bc(), 0xABCD);
+        
+        cpu.set_hl(0x1234);
+        assert_eq!(cpu.hl(), 0x1234);
+        
+        // Test edge cases
+        cpu.set_af(0x0000);
+        assert_eq!(cpu.af(), 0x0000);
+        
+        cpu.set_de(0xFFFF);
+        assert_eq!(cpu.de(), 0xFFFF);
     }
 }
